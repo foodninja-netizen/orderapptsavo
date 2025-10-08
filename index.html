@@ -29,30 +29,43 @@
 		<html lang="en">
 		<head>
 			<meta charset="utf-8" />
-			<meta name="viewport" content="width=device-width,initial-scale=1" />
+			<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 			<title>Delivery — Customer Dashboard</title>
 			<link rel="stylesheet" href="styles.css">
 			<style>
-				/* Minimal fallback styles so page is usable without styles.css */
-				body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;margin:0;padding:0;background:#f7f8fb}
-				header{display:flex;align-items:center;padding:12px 16px;background:#fff;border-bottom:1px solid #eee}
-				.admin-btn{background:#0b67ff;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
-				.container{max-width:920px;margin:28px auto;padding:0 16px}
-				.card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,0.06)}
-				.note{color:#6b7280}
-				form .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-				label{display:block;margin-bottom:6px;font-weight:600}
-				input[type="text"],input[type="tel"],textarea{width:100%;padding:10px;border:1px solid #e6e9ef;border-radius:8px}
+				/* Mobile-first responsive styles */
+				:root{--bg:#f7f8fb;--card:#fff;--accent:#0b67ff;--muted:#6b7280}
+				html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:var(--bg)}
+				header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid #eee}
+				.admin-btn{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-size:15px}
+				.container{max-width:920px;margin:18px auto;padding:0 14px}
+				.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+				h3{margin:0 0 8px}
+				.note{color:var(--muted);font-size:14px}
+				form .row{display:grid;grid-template-columns:1fr;gap:12px}
+				label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
+				input[type="text"],input[type="tel"],textarea{width:100%;padding:12px;border:1px solid #e6e9ef;border-radius:10px;font-size:16px}
+				textarea{resize:vertical}
 				.full{grid-column:1 / -1}
-				.actions{display:flex;gap:10px;align-items:center;margin-top:10px}
-				#toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:8px;opacity:0.95}
+				.actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-top:12px}
+				.actions button{padding:12px;border-radius:10px;font-size:16px}
+				#submitBtn{background:var(--accent);color:#fff;border:none}
+				#saveLocal{background:#eef3ff;border:1px solid #dbe9ff}
+				.checkbox-row{display:flex;gap:12px;flex-wrap:wrap}
+				#toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:8px;opacity:0.95}
 				.hidden{display:none}
+
+				/* Larger screens: two-column layout */
+				@media (min-width:720px){
+					form .row{grid-template-columns:1fr 1fr}
+					.actions{flex-direction:row;align-items:center}
+				}
 			</style>
 		</head>
 		<body>
 			<header>
 				<button class="admin-btn" id="goAdmin">Admin</button>
-				<h2 style="margin:0;font-size:18px;padding-left:16px">Customer Dashboard</h2>
+				<h2 style="margin:0;font-size:18px;padding-left:6px">Customer Dashboard</h2>
 			</header>
 
 			<main class="container">
@@ -60,7 +73,7 @@
 					<h3>Place an order</h3>
 					<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
 
-					<!-- Single Netlify-enabled form. JS enhances submit; form is a standard HTML POST so Netlify will capture submissions on deploy. -->
+					<!-- Netlify-enabled form (mobile-first). -->
 					<form id="orderForm" name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" aria-label="Order form">
 						<input type="hidden" name="form-name" value="order">
 						<div class="row">
@@ -86,7 +99,7 @@
 
 							<div class="full">
 								<label>Items</label>
-								<div style="display:flex;gap:12px;flex-wrap:wrap">
+								<div class="checkbox-row">
 									<label><input type="checkbox" name="items" value="alcohol"> Alcohol</label>
 									<label><input type="checkbox" name="items" value="food"> Food</label>
 									<label><input type="checkbox" name="items" value="cigs"> Cigarettes</label>
@@ -172,12 +185,10 @@
 
 						const payload = { name: name || null, phone, pickup, delivery, items, details };
 
-						// Helper to build form-encoded body for Netlify background POST
 						function encodeForm(data){
 							return Object.keys(data).map(key=> encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
 						}
 
-						// Send Netlify form in background so Netlify captures submission even when we use AJAX for API
 						try{
 							const bot = (document.querySelector('input[name="bot-field"]') || {value:''}).value;
 							const netlifyData = {
@@ -197,7 +208,6 @@
 							}).catch(()=>{/* ignore Netlify background failure */});
 						}catch(e){/* ignore */}
 
-						// Try to POST to API; if not available, fall back to localStorage
 						fetch('/api/orders', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
@@ -231,7 +241,6 @@
 						});
 					});
 
-					// Save draft to localStorage
 					saveBtn.addEventListener('click', ()=>{
 						const draft = {
 							name: document.getElementById('name').value,
@@ -246,7 +255,6 @@
 						showToast('Draft saved locally.');
 					});
 
-					// Load draft if exists
 					try{
 						const d = JSON.parse(localStorage.getItem('draft_order') || 'null');
 						if(d){
@@ -266,9 +274,7 @@
 						}
 					}catch(e){console.warn(e)}
 
-					// Admin button behavior (example: open /admin or show saved orders)
 					document.getElementById('goAdmin').addEventListener('click', ()=>{
-						// If you're using Netlify admin UI, you might redirect there; adjust as needed
 						window.location.href = '/admin' ;
 					});
 				});
