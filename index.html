@@ -2,282 +2,265 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 	<title>Delivery — Customer Dashboard</title>
 	<link rel="stylesheet" href="styles.css">
 	<style>
-		/* Minimal fallback styles so page is usable without styles.css */
-		body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;margin:0;padding:0;background:#f7f8fb}
-		header{display:flex;align-items:center;padding:12px 16px;background:#fff;border-bottom:1px solid #eee}
-		.admin-btn{background:#0b67ff;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
-		.container{max-width:920px;margin:28px auto;padding:0 16px}
-		.card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 6px 30px rgba(2,6,23,0.06)}
-		.note{color:#6b7280}
-		form .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-		label{display:block;margin-bottom:6px;font-weight:600}
-		input[type="text"],input[type="tel"],textarea{width:100%;padding:10px;border:1px solid #e6e9ef;border-radius:8px}
+		/* Mobile-first responsive styles */
+		:root{--bg:#f7f8fb;--card:#fff;--accent:#0b67ff;--muted:#6b7280}
+		html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:var(--bg)}
+		header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid #eee}
+		.admin-btn{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-size:15px}
+		.container{max-width:980px;margin:18px auto;padding:0 14px}
+		.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+		h3{margin:0 0 8px}
+		.note{color:var(--muted);font-size:14px}
+
+		/* Form grid — single column on phones, two columns on wider screens */
+		form .row{display:grid;grid-template-columns:1fr;gap:12px}
+		@media (min-width:720px){
+			form .row{grid-template-columns:1fr 1fr}
+		}
+
+		label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
+		input[type="text"],input[type="tel"],textarea{width:100%;padding:12px;border:1px solid #e6e9ef;border-radius:10px;font-size:16px}
+		textarea{resize:vertical}
 		.full{grid-column:1 / -1}
-		.actions{display:flex;gap:10px;align-items:center;margin-top:10px}
-		#toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:8px;opacity:0.95}
+
+		/* Actions adapt: stacked on mobile, inline on desktop */
+		.actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-top:12px}
+		.actions button{padding:12px;border-radius:10px;font-size:16px}
+		#submitBtn{background:var(--accent);color:#fff;border:none}
+		#saveLocal{background:#eef3ff;border:1px solid #dbe9ff}
+		@media (min-width:720px){
+			.actions{flex-direction:row;align-items:center}
+			.actions button{min-width:160px}
+		}
+
+		.checkbox-row{display:flex;gap:12px;flex-wrap:wrap}
+
+		#toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:8px;opacity:0.95}
 		.hidden{display:none}
 	</style>
 </head>
 <body>
 	<header>
-		<button class="admin-btn" id="goAdmin">Admin</button>
-		<!doctype html>
-		<html lang="en">
-		<head>
-			<meta charset="utf-8" />
-			<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-			<title>Delivery — Customer Dashboard</title>
-			<link rel="stylesheet" href="styles.css">
-			<style>
-				/* Mobile-first responsive styles */
-				:root{--bg:#f7f8fb;--card:#fff;--accent:#0b67ff;--muted:#6b7280}
-				html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:var(--bg)}
-				header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid #eee}
-				.admin-btn{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-size:15px}
-				.container{max-width:920px;margin:18px auto;padding:0 14px}
-				.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
-				h3{margin:0 0 8px}
-				.note{color:var(--muted);font-size:14px}
-				form .row{display:grid;grid-template-columns:1fr;gap:12px}
-				label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
-				input[type="text"],input[type="tel"],textarea{width:100%;padding:12px;border:1px solid #e6e9ef;border-radius:10px;font-size:16px}
-				textarea{resize:vertical}
-				.full{grid-column:1 / -1}
-				.actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-top:12px}
-				.actions button{padding:12px;border-radius:10px;font-size:16px}
-				#submitBtn{background:var(--accent);color:#fff;border:none}
-				#saveLocal{background:#eef3ff;border:1px solid #dbe9ff}
-				.checkbox-row{display:flex;gap:12px;flex-wrap:wrap}
-				#toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:8px;opacity:0.95}
-				.hidden{display:none}
+		<h2 style="margin:0;font-size:18px">Customer Dashboard</h2>
+		<div style="margin-left:auto">
+			<button class="admin-btn" id="goAdmin">Admin</button>
+		</div>
+	</header>
 
-				/* Larger screens: two-column layout */
-				@media (min-width:720px){
-					form .row{grid-template-columns:1fr 1fr}
-					.actions{flex-direction:row;align-items:center}
-				}
-			</style>
-		</head>
-		<body>
-			<header>
-				<button class="admin-btn" id="goAdmin">Admin</button>
-				<h2 style="margin:0;font-size:18px;padding-left:6px">Customer Dashboard</h2>
-			</header>
+	<main class="container">
+		<div class="card">
+			<h3>Place an order</h3>
+			<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
 
-			<main class="container">
-				<div class="card">
-					<h3>Place an order</h3>
-					<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
+			<!-- Netlify-enabled form (mobile-first). -->
+			<form id="orderForm" name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" aria-label="Order form">
+				<input type="hidden" name="form-name" value="order">
+				<div class="row">
+					<div>
+						<label for="name">Full name</label>
+						<input id="name" name="name" type="text" placeholder="Jane Doe" required>
+					</div>
 
-					<!-- Netlify-enabled form (mobile-first). -->
-					<form id="orderForm" name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" aria-label="Order form">
-						<input type="hidden" name="form-name" value="order">
-						<div class="row">
-							<div>
-								<label for="name">Full name</label>
-								<input id="name" name="name" type="text" placeholder="Jane Doe" required>
-							</div>
+					<div>
+						<label for="phone">Phone number</label>
+						<input id="phone" name="phone" type="tel" placeholder="(555) 555-0123" inputmode="tel" required>
+					</div>
 
-							<div>
-								<label for="phone">Phone number</label>
-								<input id="phone" name="phone" type="tel" placeholder="(555) 555-0123" inputmode="tel" required>
-							</div>
+					<div class="full">
+						<label for="pickup">Pickup address</label>
+						<input id="pickup" name="pickup" type="text" placeholder="123 Market St" required>
+					</div>
 
-							<div class="full">
-								<label for="pickup">Pickup address</label>
-								<input id="pickup" name="pickup" type="text" placeholder="123 Market St" required>
-							</div>
+					<div class="full">
+						<label for="delivery">Delivery address</label>
+						<input id="delivery" name="delivery" type="text" placeholder="456 Elm St" required>
+					</div>
 
-							<div class="full">
-								<label for="delivery">Delivery address</label>
-								<input id="delivery" name="delivery" type="text" placeholder="456 Elm St" required>
-							</div>
-
-							<div class="full">
-								<label>Items</label>
-								<div class="checkbox-row">
-									<label><input type="checkbox" name="items" value="alcohol"> Alcohol</label>
-									<label><input type="checkbox" name="items" value="food"> Food</label>
-									<label><input type="checkbox" name="items" value="cigs"> Cigarettes</label>
-									<label><input type="checkbox" name="items" value="clothes"> Clothes</label>
-									<label><input type="checkbox" name="items" value="other"> Other</label>
-								</div>
-							</div>
-
-							<div class="full">
-								<label for="details">Additional details</label>
-								<textarea id="details" name="details" rows="3" placeholder="Leave at back door, ring bell, etc."></textarea>
-							</div>
+					<div class="full">
+						<label>Items</label>
+						<div class="checkbox-row">
+							<label><input type="checkbox" name="items" value="alcohol"> Alcohol</label>
+							<label><input type="checkbox" name="items" value="food"> Food</label>
+							<label><input type="checkbox" name="items" value="cigs"> Cigarettes</label>
+							<label><input type="checkbox" name="items" value="clothes"> Clothes</label>
+							<label><input type="checkbox" name="items" value="other"> Other</label>
 						</div>
+					</div>
 
-						<div class="actions">
-							<button id="submitBtn" type="submit">Place order</button>
-							<button type="button" id="saveLocal">Save draft</button>
-							<div class="note">We will contact you by phone to confirm your order.</div>
-						</div>
-					</form>
+					<div class="full">
+						<label for="details">Additional details</label>
+						<textarea id="details" name="details" rows="3" placeholder="Leave at back door, ring bell, etc."></textarea>
+					</div>
 				</div>
 
-				<footer style="margin-top:14px">Simple delivery demo — orders stored in browser localStorage</footer>
-			</main>
-
-			<!-- toast -->
-			<div id="toast" class="hidden" role="status" aria-live="polite"></div>
-
-			<!-- Hidden static fallback form for Netlify detection at build time -->
-			<form name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" style="display:none;">
-				<input type="hidden" name="form-name" value="order">
-				<input name="bot-field" />
-				<input name="name" />
-				<input name="phone" />
-				<input name="pickup" />
-				<input name="delivery" />
-				<input name="items" />
-				<textarea name="details"></textarea>
-				<button type="submit">send</button>
+				<div class="actions">
+					<button id="submitBtn" type="submit">Place order</button>
+					<button type="button" id="saveLocal">Save draft</button>
+					<div class="note">We will contact you by phone to confirm your order.</div>
+				</div>
 			</form>
+		</div>
 
-			<script>
-				// Wire up UI after DOM ready
-				window.addEventListener('DOMContentLoaded', ()=>{
-					const form = document.getElementById('orderForm');
-					const toast = document.getElementById('toast');
-					const saveBtn = document.getElementById('saveLocal');
-					const submitBtn = document.getElementById('submitBtn');
+		<footer style="margin-top:14px">Simple delivery demo — orders stored in browser localStorage</footer>
+	</main>
 
-					function showToast(msg){
-						toast.textContent = msg;
-						toast.classList.remove('hidden');
-						setTimeout(()=> toast.classList.add('hidden'), 2200);
-					}
+	<!-- toast -->
+	<div id="toast" class="hidden" role="status" aria-live="polite"></div>
 
-					function validate(){
-						const name = document.getElementById('name').value.trim();
-						const phone = document.getElementById('phone').value.trim();
-						const pickup = document.getElementById('pickup').value.trim();
-						const delivery = document.getElementById('delivery').value.trim();
-						if(!name || !phone || !pickup || !delivery) return false;
-						// simple phone check: 6-15 digits
-						if(!/\d{6,15}/.test(phone.replace(/\D/g,''))) return false;
-						return true;
-					}
+	<!-- Hidden static fallback form for Netlify detection at build time -->
+	<form name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" style="display:none;">
+		<input type="hidden" name="form-name" value="order">
+		<input name="bot-field" />
+		<input name="name" />
+		<input name="phone" />
+		<input name="pickup" />
+		<input name="delivery" />
+		<input name="items" />
+		<textarea name="details"></textarea>
+		<button type="submit">send</button>
+	</form>
 
-					form.addEventListener('submit', (e)=>{
-						e.preventDefault();
-						if(!validate()){
-							alert('Please fill Name, Phone, Pickup and Delivery with valid values.');
-							return;
-						}
+	<script>
+		// Wire up UI after DOM ready
+		window.addEventListener('DOMContentLoaded', ()=>{
+			const form = document.getElementById('orderForm');
+			const toast = document.getElementById('toast');
+			const saveBtn = document.getElementById('saveLocal');
+			const submitBtn = document.getElementById('submitBtn');
 
-						submitBtn.disabled = true;
-						submitBtn.textContent = 'Submitting...';
+			function showToast(msg){
+				toast.textContent = msg;
+				toast.classList.remove('hidden');
+				setTimeout(()=> toast.classList.add('hidden'), 2200);
+			}
 
-						const name = document.getElementById('name').value.trim();
-						const phone = document.getElementById('phone').value.trim();
-						const pickup = document.getElementById('pickup').value.trim();
-						const delivery = document.getElementById('delivery').value.trim();
-						const details = document.getElementById('details').value.trim();
-						const items = Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value);
+			function validate(){
+				const name = document.getElementById('name').value.trim();
+				const phone = document.getElementById('phone').value.trim();
+				const pickup = document.getElementById('pickup').value.trim();
+				const delivery = document.getElementById('delivery').value.trim();
+				if(!name || !phone || !pickup || !delivery) return false;
+				// simple phone check: 6-15 digits
+				if(!/\d{6,15}/.test(phone.replace(/\D/g,''))) return false;
+				return true;
+			}
 
-						const payload = { name: name || null, phone, pickup, delivery, items, details };
+			form.addEventListener('submit', (e)=>{
+				e.preventDefault();
+				if(!validate()){
+					alert('Please fill Name, Phone, Pickup and Delivery with valid values.');
+					return;
+				}
 
-						function encodeForm(data){
-							return Object.keys(data).map(key=> encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
-						}
+				submitBtn.disabled = true;
+				submitBtn.textContent = 'Submitting...';
 
-						try{
-							const bot = (document.querySelector('input[name="bot-field"]') || {value:''}).value;
-							const netlifyData = {
-								'form-name': 'order',
-								'bot-field': bot,
-								name: name || '',
-								phone: phone,
-								pickup: pickup,
-								delivery: delivery,
-								items: (items||[]).join(', '),
-								details: details || ''
-							};
-							fetch(window.location.pathname || '/', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-								body: encodeForm(netlifyData)
-							}).catch(()=>{/* ignore Netlify background failure */});
-						}catch(e){/* ignore */}
+				const name = document.getElementById('name').value.trim();
+				const phone = document.getElementById('phone').value.trim();
+				const pickup = document.getElementById('pickup').value.trim();
+				const delivery = document.getElementById('delivery').value.trim();
+				const details = document.getElementById('details').value.trim();
+				const items = Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value);
 
-						fetch('/api/orders', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify(payload)
-						}).then(r => {
-							if (!r.ok) throw new Error('no-api');
-							return r.json();
-						}).then(saved => {
-							showToast('Order placed');
-							form.reset();
-						}).catch(err => {
-							const order = {
-								id: 'ord_' + Date.now(),
-								name: name || null,
-								phone,
-								pickup,
-								delivery,
-								items,
-								details,
-								createdAt: new Date().toISOString(),
-								status: 'new'
-							};
-							const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-							orders.unshift(order);
-							localStorage.setItem('orders', JSON.stringify(orders));
-							showToast('Order saved locally (offline)');
-							form.reset();
-						}).finally(()=>{
-							submitBtn.disabled = false;
-							submitBtn.textContent = 'Place order';
-						});
-					});
+				const payload = { name: name || null, phone, pickup, delivery, items, details };
 
-					saveBtn.addEventListener('click', ()=>{
-						const draft = {
-							name: document.getElementById('name').value,
-							phone: document.getElementById('phone').value,
-							pickup: document.getElementById('pickup').value,
-							delivery: document.getElementById('delivery').value,
-							details: document.getElementById('details').value,
-							items: Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value),
-							savedAt: new Date().toISOString()
-						};
-						localStorage.setItem('draft_order', JSON.stringify(draft));
-						showToast('Draft saved locally.');
-					});
+				function encodeForm(data){
+					return Object.keys(data).map(key=> encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
+				}
 
-					try{
-						const d = JSON.parse(localStorage.getItem('draft_order') || 'null');
-						if(d){
-							if(confirm('Load saved draft?')){
-								document.getElementById('name').value = d.name || '';
-								document.getElementById('phone').value = d.phone || '';
-								document.getElementById('pickup').value = d.pickup || '';
-								document.getElementById('delivery').value = d.delivery || '';
-								document.getElementById('details').value = d.details || '';
-								if(Array.isArray(d.items)){
-									d.items.forEach(it=>{
-										const el = Array.from(document.querySelectorAll('input[name="items"]')).find(x=>x.value===it);
-										if(el) el.checked = true;
-									})
-								}
-							}
-						}
-					}catch(e){console.warn(e)}
+				try{
+					const bot = (document.querySelector('input[name="bot-field"]') || {value:''}).value;
+					const netlifyData = {
+						'form-name': 'order',
+						'bot-field': bot,
+						name: name || '',
+						phone: phone,
+						pickup: pickup,
+						delivery: delivery,
+						items: (items||[]).join(', '),
+						details: details || ''
+					};
+					fetch(window.location.pathname || '/', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+						body: encodeForm(netlifyData)
+					}).catch(()=>{/* ignore Netlify background failure */});
+				}catch(e){/* ignore */}
 
-					document.getElementById('goAdmin').addEventListener('click', ()=>{
-						window.location.href = '/admin' ;
-					});
+				fetch('/api/orders', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				}).then(r => {
+					if (!r.ok) throw new Error('no-api');
+					return r.json();
+				}).then(saved => {
+					showToast('Order placed');
+					form.reset();
+				}).catch(err => {
+					const order = {
+						id: 'ord_' + Date.now(),
+						name: name || null,
+						phone,
+						pickup,
+						delivery,
+						items,
+						details,
+						createdAt: new Date().toISOString(),
+						status: 'new'
+					};
+					const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+					orders.unshift(order);
+					localStorage.setItem('orders', JSON.stringify(orders));
+					showToast('Order saved locally (offline)');
+					form.reset();
+				}).finally(()=>{
+					submitBtn.disabled = false;
+					submitBtn.textContent = 'Place order';
 				});
-			</script>
-		</body>
-		</html>
+			});
+
+			saveBtn.addEventListener('click', ()=>{
+				const draft = {
+					name: document.getElementById('name').value,
+					phone: document.getElementById('phone').value,
+					pickup: document.getElementById('pickup').value,
+					delivery: document.getElementById('delivery').value,
+					details: document.getElementById('details').value,
+					items: Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value),
+					savedAt: new Date().toISOString()
+				};
+				localStorage.setItem('draft_order', JSON.stringify(draft));
+				showToast('Draft saved locally.');
+			});
+
+			try{
+				const d = JSON.parse(localStorage.getItem('draft_order') || 'null');
+				if(d){
+					if(confirm('Load saved draft?')){
+						document.getElementById('name').value = d.name || '';
+						document.getElementById('phone').value = d.phone || '';
+						document.getElementById('pickup').value = d.pickup || '';
+						document.getElementById('delivery').value = d.delivery || '';
+						document.getElementById('details').value = d.details || '';
+						if(Array.isArray(d.items)){
+							d.items.forEach(it=>{
+								const el = Array.from(document.querySelectorAll('input[name="items"]')).find(x=>x.value===it);
+								if(el) el.checked = true;
+							})
+						}
+					}
+				}
+			}catch(e){console.warn(e)}
+
+			document.getElementById('goAdmin').addEventListener('click', ()=>{
+				window.location.href = '/admin' ;
+			});
+		});
+	</script>
+</body>
+</html>
