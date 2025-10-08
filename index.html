@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Delivery — Customer Dashboard</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<header>
+		<button class="admin-btn" id="goAdmin">Admin</button>
+		<h2 style="margin:0;font-size:18px;padding-left:16px">Customer Dashboard</h2>
+	</header>
+
+	<main class="container">
+		<div class="card">
+			<h3>Place an order</h3>
+			<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
+
+			<form id="orderForm" novalidate>
+				<div class="row grid-2">
+					<div>
+						<label for="name">Name (required)</label>
+						<input id="name" name="name" type="text" placeholder="Your name" required aria-required="true">
+					</div>
+					<div>
+						<label for="phone">Phone</label>
+						<input id="phone" name="phone" type="tel" placeholder="e.g. 0777 555 123" required>
+					</div>
+				</div>
+
+				<div class="row grid-2">
+					<div>
+						<label for="pickup">Pickup address</label>
+						<input id="pickup" name="pickup" type="text" placeholder="Where to pick up from" required>
+					</div>
+					<div>
+						<label for="delivery">Delivery address</label>
+						<input id="delivery" name="delivery" type="text" placeholder="Where to deliver to" required>
+					</div>
+				</div>
+
+				<div style="margin-top:8px">
+					<label>Item types</label>
+					<div class="categories" id="categories">
+						<label class="chip"><input type="checkbox" name="items" value="Food"> 🍔 Food</label>
+						<label class="chip"><input type="checkbox" name="items" value="Alcohol"> 🍷 Alcohol</label>
+						<label class="chip"><input type="checkbox" name="items" value="Cigarettes"> 🚬 Cigarettes</label>
+						<label class="chip"><input type="checkbox" name="items" value="Clothes"> 👕 Clothes</label>
+						<label class="chip"><input type="checkbox" name="items" value="Juices"> 🧃 Juices</label>
+						<label class="chip"><input type="checkbox" name="items" value="Medicine"> 💊 Medicine</label>
+					</div>
+				</div>
+
+				<div style="margin-top:12px">
+					<label for="details">Details / Items & quantities</label>
+					<textarea id="details" name="details" rows="4" placeholder="e.g. 2x cheeseburger, 1x orange juice, 1x paracetamol"></textarea>
+				</div>
+
+				<div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+					<button type="submit" class="primary">Submit order</button>
+					<button type="button" id="saveLocal">Save draft</button>
+				</div>
+			</form>
+
+			<div id="toast" class="toast hidden">Saved</div>
+
+			
+		</div>
+	</main>
+
+	<footer>Simple delivery demo — orders stored in browser localStorage</footer>
+
+	<script>
+		// Wire up UI after DOM ready to avoid null references
+		window.addEventListener('DOMContentLoaded', ()=>{
+			// Admin button (prompt for password and navigate to admin page)
+			const adminBtn = document.getElementById('goAdmin');
+			if(adminBtn){
+				adminBtn.addEventListener('click', ()=>{
+					const p = prompt('Enter admin password to view orders:');
+					if(p === '4170423090'){
+						window.location.href = 'adminindex.html';
+					} else if(p !== null){
+						alert('Incorrect password');
+					}
+				});
+			}
+
+			// Form handling: save orders to localStorage
+			const form = document.getElementById('orderForm');
+			const toast = document.getElementById('toast');
+
+			function showToast(msg){
+			  toast.textContent = msg;
+			  toast.classList.remove('hidden');
+			  setTimeout(()=> toast.classList.add('hidden'), 2200);
+			}
+
+			function validate(){
+			  const name = document.getElementById('name').value.trim();
+			  const phone = document.getElementById('phone').value.trim();
+			  const pickup = document.getElementById('pickup').value.trim();
+			  const delivery = document.getElementById('delivery').value.trim();
+			  if(!name || !phone || !pickup || !delivery) return false;
+			  // simple phone check
+			  if(!/\d{6,15}/.test(phone.replace(/\D/g,''))) return false;
+			  // name should not be only numeric chars (simple check) - optional
+			  // (keep name flexible, but ensure it's not empty or whitespace-only)
+			  return true;
+			}
+
+						form.addEventListener('submit', (e)=>{
+								e.preventDefault();
+								if(!validate()){
+									alert('Please fill Name, Phone, Pickup and Delivery with valid values.');
+										return;
+								}
+
+								const name = document.getElementById('name').value.trim();
+								const phone = document.getElementById('phone').value.trim();
+								const pickup = document.getElementById('pickup').value.trim();
+								const delivery = document.getElementById('delivery').value.trim();
+								const details = document.getElementById('details').value.trim();
+								const items = Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value);
+
+								const payload = {
+									name: name || null,
+									phone,
+									pickup,
+									delivery,
+									items,
+									details
+								};
+
+								// Try to POST to server; if that fails, save to localStorage as fallback
+								fetch('/api/orders', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify(payload)
+								}).then(r => {
+									if (!r.ok) throw new Error('no-api');
+									return r.json();
+								}).then(saved => {
+									showToast('Order placed');
+									form.reset();
+								}).catch(err => {
+									const order = {
+										id: 'ord_' + Date.now(),
+										name: name || null,
+										phone,
+										pickup,
+										delivery,
+										items,
+										details,
+										createdAt: new Date().toISOString(),
+										status: 'new'
+									};
+									const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+									orders.unshift(order);
+									localStorage.setItem('orders', JSON.stringify(orders));
+									showToast('Order saved locally (offline)');
+									form.reset();
+								});
+						});
+
+			// Save draft to localStorage (not sent)
+			document.getElementById('saveLocal').addEventListener('click', ()=>{
+				const draft = {
+					name: document.getElementById('name').value,
+					phone: document.getElementById('phone').value,
+					pickup: document.getElementById('pickup').value,
+					delivery: document.getElementById('delivery').value,
+					details: document.getElementById('details').value,
+					items: Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value),
+					savedAt: new Date().toISOString()
+				};
+				localStorage.setItem('draft_order', JSON.stringify(draft));
+				showToast('Draft saved locally.');
+			});
+
+			// Load draft if exists (already inside DOMContentLoaded)
+			try{
+				const d = JSON.parse(localStorage.getItem('draft_order') || 'null');
+				if(d){
+					if(confirm('Load saved draft?')){
+						document.getElementById('name').value = d.name || '';
+						document.getElementById('phone').value = d.phone || '';
+						document.getElementById('pickup').value = d.pickup || '';
+						document.getElementById('delivery').value = d.delivery || '';
+						document.getElementById('details').value = d.details || '';
+						if(Array.isArray(d.items)){
+							d.items.forEach(it=>{
+								const el = Array.from(document.querySelectorAll('input[name="items"]')).find(x=>x.value===it);
+								if(el) el.checked = true;
+							})
+						}
+					}
+				}
+			}catch(e){console.warn(e)}
+
+		});
+	</script>
+</body>
+</html>
+

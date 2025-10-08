@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Delivery — Admin</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+		<header class="admin">
+		<div style="display:flex;gap:12px;align-items:center">
+				<button class="back" id="toLanding">Customer page</button>
+			<h2 style="margin:0;font-size:18px">Admin — Orders</h2>
+		</div>
+		<div style="display:flex;gap:8px;align-items:center">
+			<button id="refresh" class="small">Refresh</button>
+			<button id="clearAll" class="small">Clear all</button>
+		</div>
+	</header>
+
+	<main class="container">
+		<div id="locked" class="card">
+			<h3>Admin login</h3>
+			<p class="meta">Enter admin password to view orders.</p>
+			<div style="margin-top:8px;display:flex;gap:8px">
+				<input id="pw" type="password" placeholder="Admin password" style="padding:8px;border-radius:8px;border:1px solid #e3e8ee;flex:1">
+				<button id="unlock" class="small">Unlock</button>
+			</div>
+			<p class="meta" style="margin-top:8px">Enter admin password to continue.</p>
+		</div>
+
+		<div id="ordersArea" style="display:none" class="container admin">
+			<div class="card">
+				<div class="toolbar">
+					<input id="search" class="search-input" placeholder="Search by phone, address or item">
+					<select id="statusFilter" class="select-filter">
+						<option value="all">All</option>
+						<option value="new">New</option>
+						<option value="complete">Complete</option>
+					</select>
+					<button id="exportCsv" class="btn-export">Export CSV</button>
+				</div>
+				<div id="ordersList"></div>
+				<p class="meta">Orders are stored in the browser's localStorage under the key <code>orders</code>.</p>
+			</div>
+		</div>
+	</main>
+
+	<script>
+		// Obfuscated password function (keeps literal out of top-level globals)
+		function checkAdminPassword(input){
+			// simple obfuscation: reversed digits (decoded will be the real password)
+			const encoded = '0903240714'; // encoded form so decoded === '4170423090'
+			const decoded = encoded.split('').reverse().join('');
+			return input === decoded;
+		}
+
+		const locked = document.getElementById('locked');
+		const ordersArea = document.getElementById('ordersArea');
+		const ordersList = document.getElementById('ordersList');
+
+		// Polling state
+		let pollingId = null;
+		let lastServerSnapshot = null; // used to detect new orders from API
+		let adminSecret = null; // in-memory secret used as Bearer token when calling API
+
+		document.getElementById('toLanding').addEventListener('click', ()=>{
+			window.location.href = 'index.html';
+		});
+
+		function getOrders(){
+			return JSON.parse(localStorage.getItem('orders') || '[]');
+		}
+
+		function renderOrders(list){
+			ordersList.innerHTML = '';
+			if(list.length===0){
+				ordersList.innerHTML = '<div class="card">No orders yet.</div>';
+				return;
+			}
+			list.forEach(o=>{
+				const el = document.createElement('div');
+				el.className = 'order';
+				const status = o.status || 'new';
+				let badgeClass = 'status-new';
+				let emoji = '🆕';
+				if(status==='accepted'){ badgeClass='status-accepted'; emoji='✅' }
+				if(status==='enroute'){ badgeClass='status-enroute'; emoji='🚚' }
+				if(status==='delivered'){ badgeClass='status-delivered'; emoji='📦' }
+				el.innerHTML = `
+					<div style="display:flex;justify-content:space-between;align-items:center">
+						<div>
+							<strong>${o.name || '\u2014'}</strong> \u2014 <span class="meta">${o.phone}</span>
+						</div>
+						<div class="meta">${new Date(o.createdAt).toLocaleString()}</div>
+					</div>
+					<div style="margin-top:8px">
+						<div style="display:flex;gap:8px;align-items:center"><span class="status-badge ${badgeClass}">${emoji} ${status}</span></div>
+						<div style="margin-top:8px"><strong>Pickup:</strong> ${o.pickup}</div>
+						<div><strong>Delivery:</strong> ${o.delivery}</div>
+						<div><strong>Items:</strong> ${ (o.items && o.items.length) ? o.items.join(', ') : '\u2014'}</div>
+						<div style="margin-top:6px"><strong>Details:</strong> ${o.details || '\u2014'}</div>
+						<div class="timestamps">
+							${ o.acceptedAt ? '<div>Accepted: '+ new Date(o.acceptedAt).toLocaleString() +'</div>' : '' }
+							${ o.enrouteAt ? '<div>En route: '+ new Date(o.enrouteAt).toLocaleString() +'</div>' : '' }
+							${ o.deliveredAt ? '<div>Delivered: '+ new Date(o.deliveredAt).toLocaleString() +'</div>' : '' }
+						</div>
+					</div>
+					<div class="actions">
+						${ status==='new' ? '<button class="small" data-id="'+o.id+'" data-action="accept">Accept</button>' : '' }
+						${ status==='accepted' ? '<button class="small" data-id="'+o.id+'" data-action="start">Mark en route</button>' : '' }
+						${ status!=='delivered' ? '<button class="small" data-id="'+o.id+'" data-action="delivered">Mark delivered</button>' : '' }
+						<button class="small" data-id="${o.id}" data-action="delete">Delete</button>
+					</div>
+				`;
+				ordersList.appendChild(el);
+			})
+		}
+
+		document.getElementById('unlock').addEventListener('click', ()=>{
+			const pw = document.getElementById('pw').value;
+			if(checkAdminPassword(pw)){
+				// store secret in memory for API calls (do not persist)
+				adminSecret = pw;
+				locked.style.display = 'none';
+				ordersArea.style.display = '';
+				// Try to start polling an API at /api/orders. If unavailable, fallback to localStorage.
+				startPolling();
+				// initial render from localStorage as immediate content
+				renderOrders(getOrders());
+			} else {
+				alert('Incorrect password');
+			}
+		});
+
+		function startPolling(){
+			if(pollingId) return;
+			// Do an immediate poll, then schedule
+			pollOrders();
+			pollingId = setInterval(pollOrders, 5000);
+		}
+
+		function stopPolling(){
+			if(pollingId){ clearInterval(pollingId); pollingId = null; lastServerSnapshot = null; }
+		}
+
+		async function pollOrders(){
+			// Attempt to fetch server-side orders. If API not available or errors, fall back.
+			try{
+				const headers = {};
+				if(adminSecret) headers['Authorization'] = 'Bearer ' + adminSecret;
+				const res = await fetch('/api/orders', { headers });
+				if(!res.ok) throw new Error('no-api');
+				const list = await res.json();
+				// basic detection of changes: stringify
+				const snap = JSON.stringify(list || []);
+				if(lastServerSnapshot !== snap){
+					// if there was a previous snapshot and the new one is larger, beep
+					if(lastServerSnapshot && snap.length > lastServerSnapshot.length){
+						try{ const o=new AudioContext(); const t=o.createOscillator(); t.frequency.value=880; t.connect(o.destination); t.start(); setTimeout(()=>{t.stop(); o.close()},120); }catch(err){}
+					}
+					lastServerSnapshot = snap;
+					renderOrders(list);
+				}
+				return;
+			}catch(err){
+				// API unavailable — keep using localStorage but still render if changed
+				const local = getOrders();
+				const snapLocal = JSON.stringify(local || []);
+				if(lastServerSnapshot !== snapLocal){ lastServerSnapshot = snapLocal; renderOrders(local); }
+				return;
+			}
+		}
+
+		document.getElementById('refresh').addEventListener('click', ()=>{
+			if(ordersArea.style.display==='') renderOrders(getOrders());
+			else alert('Unlock first');
+		});
+
+		document.getElementById('clearAll').addEventListener('click', ()=>{
+			if(!confirm('Clear all orders from localStorage?')) return;
+			localStorage.removeItem('orders');
+			renderOrders([]);
+		});
+
+		// Delegate actions (delete/complete)
+		ordersList.addEventListener('click', (e)=>{
+			const b = e.target.closest('button');
+			if(!b) return;
+			const id = b.dataset.id;
+			const action = b.dataset.action;
+			let orders = getOrders();
+			if(action==='delete'){
+				// try server delete
+				fetch('/api/orders/' + id, { method: 'DELETE', headers: adminSecret ? { Authorization: 'Bearer ' + adminSecret } : {} })
+					.then(r => { if(!r.ok) throw new Error('no-api'); return r.json(); })
+					.then(()=>{ renderOrders(getOrdersFromServerOrLocal()) })
+					.catch(()=>{
+						orders = orders.filter(x=>x.id!==id);
+						localStorage.setItem('orders', JSON.stringify(orders));
+						renderOrders(orders);
+					});
+			} else if(action==='accept' || action==='start' || action==='delivered'){
+				const targetStatus = action==='accept' ? 'accepted' : action==='start' ? 'enroute' : 'delivered';
+				fetch('/api/orders/' + id + '/status', { method: 'PATCH', headers: Object.assign({'Content-Type':'application/json'}, adminSecret ? { Authorization: 'Bearer ' + adminSecret } : {}), body: JSON.stringify({ status: targetStatus }) })
+					.then(r => { if(!r.ok) throw new Error('no-api'); return r.json(); })
+					.then(()=>{ renderOrders(getOrdersFromServerOrLocal()) })
+					.catch(()=>{
+						// fallback to local
+						orders = orders.map(x=> x.id===id ? {...x, status: targetStatus, [ targetStatus === 'accepted' ? 'acceptedAt' : targetStatus === 'enroute' ? 'enrouteAt' : 'deliveredAt' ]: new Date().toISOString()} : x);
+						localStorage.setItem('orders', JSON.stringify(orders));
+						renderOrders(orders);
+					});
+			}
+		})
+
+		// Search/filter/export
+		document.getElementById('search').addEventListener('input', (e)=>{
+			const q = e.target.value.trim().toLowerCase();
+			const status = document.getElementById('statusFilter').value;
+			let list = getOrders();
+			if(status!=='all') list = list.filter(x=> (x.status||'new')===status);
+			if(q) list = list.filter(x=> JSON.stringify(x).toLowerCase().includes(q));
+			renderOrders(list);
+		});
+
+		document.getElementById('statusFilter').addEventListener('change', ()=>{
+			document.getElementById('search').dispatchEvent(new Event('input'));
+		});
+
+			document.getElementById('exportCsv').addEventListener('click', ()=>{
+			const orders = getOrders();
+			if(orders.length===0){ alert('No orders to export'); return; }
+			const rows = orders.map(o=> [o.id, o.createdAt, o.acceptedAt||'', o.enrouteAt||'', o.deliveredAt||'', o.name||'', o.phone, o.pickup, o.delivery, (o.items||[]).join('|'), (o.details||'').replace(/\n/g,' '), o.status||''].map(v=> '"'+String(v).replace(/"/g,'""')+'"').join(','));
+			const csv = ['id,createdAt,acceptedAt,enrouteAt,deliveredAt,name,phone,pickup,delivery,items,details,status', ...rows].join('\n');
+			const blob = new Blob([csv], {type:'text/csv'});
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url; a.download = 'orders_'+Date.now()+'.csv'; a.click();
+			URL.revokeObjectURL(url);
+		});
+
+		// Listen for storage events so admin can see orders placed in other tabs
+		window.addEventListener('storage', (e)=>{
+			if(e.key === 'orders'){
+				if(ordersArea.style.display===''){
+					renderOrders(getOrders());
+					// small beep to notify
+					try{ new AudioContext().resume().then(()=>{ const o=new AudioContext(); const t=o.createOscillator(); t.frequency.value=880; t.connect(o.destination); t.start(); setTimeout(()=>{t.stop(); o.close()},120); }); }catch(err){}
+				}
+			}
+		});
+
+		// On load: focus pw box
+		window.addEventListener('DOMContentLoaded', ()=>{
+			document.getElementById('pw').focus();
+		})
+	</script>
+</body>
+</html>
+
