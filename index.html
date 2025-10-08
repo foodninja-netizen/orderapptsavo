@@ -17,8 +17,8 @@
 			<h3>Place an order</h3>
 			<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
 
-			<!-- Netlify form: data-netlify enables form detection on deploy. JS still handles submit for API, this is progressive enhancement. -->
-			<form id="orderForm" name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" novalidate>
+			<!-- Netlify form: data-netlify enables form detection on deploy. This is a standard HTML form so Netlify will capture submissions. -->
+			<form id="orderForm" name="order" method="POST" action="/" data-netlify="true" data-netlify-honeypot="bot-field">
 				<!-- Required for Netlify to identify the form -->
 				<input type="hidden" name="form-name" value="order">
 				<!-- Honeypot field (anti-spam) -->
@@ -76,6 +76,21 @@
 
 	<footer>Simple delivery demo — orders stored in browser localStorage</footer>
 
+	<!-- Hidden static fallback form for Netlify form detection.
+		 This ensures Netlify sees the form and fields at build time even if
+		 you later render the form with JavaScript. It's invisible to users. -->
+	<form name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" style="display:none;">
+		<input type="hidden" name="form-name" value="order">
+		<input name="bot-field" />
+		<input name="name" />
+		<input name="phone" />
+		<input name="pickup" />
+		<input name="delivery" />
+		<input name="items" />
+		<textarea name="details"></textarea>
+		<button type="submit">send</button>
+	</form>
+
 	<script>
 		// Wire up UI after DOM ready to avoid null references
 		window.addEventListener('DOMContentLoaded', ()=>{
@@ -97,101 +112,14 @@
 			const toast = document.getElementById('toast');
 
 			function showToast(msg){
-			  toast.textContent = msg;
-			  toast.classList.remove('hidden');
-			  setTimeout(()=> toast.classList.add('hidden'), 2200);
+				toast.textContent = msg;
+				toast.classList.remove('hidden');
+				setTimeout(()=> toast.classList.add('hidden'), 2200);
 			}
 
-			function validate(){
-			  const name = document.getElementById('name').value.trim();
-			  const phone = document.getElementById('phone').value.trim();
-			  const pickup = document.getElementById('pickup').value.trim();
-			  const delivery = document.getElementById('delivery').value.trim();
-			  if(!name || !phone || !pickup || !delivery) return false;
-			  // simple phone check
-			  if(!/\d{6,15}/.test(phone.replace(/\D/g,''))) return false;
-			  // name should not be only numeric chars (simple check) - optional
-			  // (keep name flexible, but ensure it's not empty or whitespace-only)
-			  return true;
-			}
-
-						form.addEventListener('submit', (e)=>{
-								e.preventDefault();
-								if(!validate()){
-									alert('Please fill Name, Phone, Pickup and Delivery with valid values.');
-										return;
-								}
-
-								const name = document.getElementById('name').value.trim();
-								const phone = document.getElementById('phone').value.trim();
-								const pickup = document.getElementById('pickup').value.trim();
-								const delivery = document.getElementById('delivery').value.trim();
-								const details = document.getElementById('details').value.trim();
-								const items = Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value);
-
-								const payload = {
-									name: name || null,
-									phone,
-									pickup,
-									delivery,
-									items,
-									details
-								};
-
-								// Build Netlify form body (form-encoded) and send it in background so Netlify captures the submission
-								function encodeForm(data){
-									return Object.keys(data).map(key=> encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
-								}
-								try{
-									const bot = (document.querySelector('input[name="bot-field"]') || {value:''}).value;
-									const netlifyData = {
-										'form-name': 'order',
-										'bot-field': bot,
-										name: name || '',
-										phone: phone,
-										pickup: pickup,
-										delivery: delivery,
-										items: (items||[]).join(', '),
-										details: details || ''
-									};
-									// POST to current page path so Netlify detects the form submission
-									fetch(window.location.pathname || '/', {
-										method: 'POST',
-										headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-										body: encodeForm(netlifyData)
-									}).catch(()=>{/* ignore Netlify background failure */});
-								}catch(e){/* ignore */}
-
-								// Try to POST to server; if that fails, save to localStorage as fallback
-								fetch('/api/orders', {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify(payload)
-								}).then(r => {
-									if (!r.ok) throw new Error('no-api');
-									return r.json();
-								}).then(saved => {
-									showToast('Order placed');
-									form.reset();
-								}).catch(err => {
-									const order = {
-										id: 'ord_' + Date.now(),
-										name: name || null,
-										phone,
-										pickup,
-										delivery,
-										items,
-										details,
-										createdAt: new Date().toISOString(),
-										status: 'new'
-									};
-									const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-									orders.unshift(order);
-									localStorage.setItem('orders', JSON.stringify(orders));
-									showToast('Order saved locally (offline)');
-									form.reset();
-								});
-						});
+			// Note: this page uses a standard HTML form submission so Netlify (or your server) will receive
+			// the POST. The previous JavaScript-based AJAX submit has been removed to keep the page a
+			// plain form while preserving the Save Draft and admin features below.
 
 			// Save draft to localStorage (not sent)
 			document.getElementById('saveLocal').addEventListener('click', ()=>{
