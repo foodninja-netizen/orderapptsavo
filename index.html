@@ -17,7 +17,12 @@
 			<h3>Place an order</h3>
 			<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
 
-			<form id="orderForm" novalidate>
+			<!-- Netlify form: data-netlify enables form detection on deploy. JS still handles submit for API, this is progressive enhancement. -->
+			<form id="orderForm" name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" novalidate>
+				<!-- Required for Netlify to identify the form -->
+				<input type="hidden" name="form-name" value="order">
+				<!-- Honeypot field (anti-spam) -->
+				<p class="hidden"><label>Don’t fill this out if you're human: <input name="bot-field"></label></p>
 				<div class="row grid-2">
 					<div>
 						<label for="name">Name (required)</label>
@@ -132,6 +137,30 @@
 									items,
 									details
 								};
+
+								// Build Netlify form body (form-encoded) and send it in background so Netlify captures the submission
+								function encodeForm(data){
+									return Object.keys(data).map(key=> encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
+								}
+								try{
+									const bot = (document.querySelector('input[name="bot-field"]') || {value:''}).value;
+									const netlifyData = {
+										'form-name': 'order',
+										'bot-field': bot,
+										name: name || '',
+										phone: phone,
+										pickup: pickup,
+										delivery: delivery,
+										items: (items||[]).join(', '),
+										details: details || ''
+									};
+									// POST to current page path so Netlify detects the form submission
+									fetch(window.location.pathname || '/', {
+										method: 'POST',
+										headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+										body: encodeForm(netlifyData)
+									}).catch(()=>{/* ignore Netlify background failure */});
+								}catch(e){/* ignore */}
 
 								// Try to POST to server; if that fails, save to localStorage as fallback
 								fetch('/api/orders', {
