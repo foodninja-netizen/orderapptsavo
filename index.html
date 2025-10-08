@@ -1,163 +1,92 @@
 <!doctype html>
 <html lang="en">
-<head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width,initial-scale=1" />
-	<title>Delivery — Customer Dashboard</title>
-	<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-	<header>
-		<button class="admin-btn" id="goAdmin">Admin</button>
-		<h2 style="margin:0;font-size:18px;padding-left:16px">Customer Dashboard</h2>
-	</header>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Order Form</title>
+		<style>
+			:root{--bg:#f7f8fb;--card:#fff;--accent:#0b67ff;--muted:#6b7280}
+			html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+			body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);padding:24px}
+			.card{width:100%;max-width:720px;background:var(--card);padding:28px;border-radius:12px;box-shadow:0 6px 30px rgba(11,103,255,0.06)}
+			h1{margin:0 0 8px;font-size:20px}
+			p.lead{margin:0 0 20px;color:var(--muted)}
+			form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+			label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
+			input[type="text"],input[type="tel"],select{width:100%;padding:10px 12px;border:1px solid #e6e9ef;border-radius:8px;font-size:14px}
+			.full{grid-column:1 / -1}
+			.actions{display:flex;gap:10px;align-items:center;margin-top:6px}
+			button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:8px;cursor:pointer}
+			button[disabled]{opacity:0.6;cursor:wait}
+			.note{font-size:13px;color:var(--muted)}
+			.honeypot{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+		</style>
+	</head>
+	<body>
+		<main class="card" role="main">
+			<h1>Order Form</h1>
+			<p class="lead">Fill out the details below to place an order. This form is configured for Netlify Forms.</p>
 
-	<main class="container">
-		<div class="card">
-			<h3>Place an order</h3>
-			<p class="note">Enter pickup & delivery addresses, phone, and choose the types of items you want.</p>
+			<!-- Netlify: required attributes/data for detection -->
+			<form name="order-form" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" action="/thank-you" aria-label="Order form">
+				<!-- Hidden input required for Netlify when JavaScript is disabled -->
+				<input type="hidden" name="form-name" value="order-form">
 
-			<!-- Netlify form: data-netlify enables form detection on deploy. This is a standard HTML form so Netlify will capture submissions. -->
-			<form id="orderForm" name="order" method="POST" action="/" data-netlify="true" data-netlify-honeypot="bot-field">
-				<!-- Required for Netlify to identify the form -->
-				<input type="hidden" name="form-name" value="order">
-				<!-- Honeypot field (anti-spam) -->
-				<p class="hidden"><label>Don’t fill this out if you're human: <input name="bot-field"></label></p>
-				<div class="row grid-2">
-					<div>
-						<label for="name">Name (required)</label>
-						<input id="name" name="name" type="text" placeholder="Your name" required aria-required="true">
-					</div>
-					<div>
-						<label for="phone">Phone</label>
-						<input id="phone" name="phone" type="tel" placeholder="e.g. 0777 555 123" required>
-					</div>
+				<!-- Honeypot field (spam prevention) -->
+				<div class="honeypot" aria-hidden="true">
+					<label>Don't fill this out if you're human: <input name="bot-field" /></label>
 				</div>
 
-				<div class="row grid-2">
-					<div>
-						<label for="pickup">Pickup address</label>
-						<input id="pickup" name="pickup" type="text" placeholder="Where to pick up from" required>
-					</div>
-					<div>
-						<label for="delivery">Delivery address</label>
-						<input id="delivery" name="delivery" type="text" placeholder="Where to deliver to" required>
-					</div>
+				<!-- Fields requested by user -->
+				<div>
+					<label for="name">Full name</label>
+					<input id="name" name="name" type="text" placeholder="Jane Doe" required>
 				</div>
 
-				<div style="margin-top:8px">
-					<label>Item types</label>
-					<div class="categories" id="categories">
-						<label class="chip"><input type="checkbox" name="items" value="Food"> 🍔 Food</label>
-						<label class="chip"><input type="checkbox" name="items" value="Alcohol"> 🍷 Alcohol</label>
-						<label class="chip"><input type="checkbox" name="items" value="Cigarettes"> 🚬 Cigarettes</label>
-						<label class="chip"><input type="checkbox" name="items" value="Clothes"> 👕 Clothes</label>
-						<label class="chip"><input type="checkbox" name="items" value="Juices"> 🧃 Juices</label>
-						<label class="chip"><input type="checkbox" name="items" value="Medicine"> 💊 Medicine</label>
-					</div>
+				<div>
+					<label for="phone">Phone number</label>
+					<input id="phone" name="phone" type="tel" placeholder="(555) 555-0123" inputmode="tel" required>
 				</div>
 
-				<div style="margin-top:12px">
-					<label for="details">Details / Items & quantities</label>
-					<textarea id="details" name="details" rows="4" placeholder="e.g. 2x cheeseburger, 1x orange juice, 1x paracetamol"></textarea>
+						<div class="full">
+							<label for="item">Item</label>
+							<select id="item" name="item" required>
+								<option value="">-- choose an item --</option>
+								<option value="alcohol">Alcohol</option>
+								<option value="food">Food</option>
+								<option value="cigs">Cigarettes</option>
+								<option value="clothes">Clothes</option>
+								<option value="other">Other items</option>
+							</select>
+						</div>
+
+				<div class="full">
+					<label for="houseNumber">House number / Address line</label>
+					<input id="houseNumber" name="houseNumber" type="text" placeholder="1234 Main St" required>
 				</div>
 
-				<div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-					<button type="submit" class="primary">Submit order</button>
-					<button type="button" id="saveLocal">Save draft</button>
+				<div class="full">
+					<label for="notes">Additional notes (optional)</label>
+					<input id="notes" name="notes" type="text" placeholder="Leave at back door, ring bell, etc.">
+				</div>
+
+				<div class="full actions">
+					<button id="submitBtn" type="submit">Place order</button>
+					<div class="note">We will contact you by phone to confirm your order.</div>
 				</div>
 			</form>
 
-			<div id="toast" class="toast hidden">Saved</div>
-
-			
-		</div>
-	</main>
-
-	<footer>Simple delivery demo — orders stored in browser localStorage</footer>
-
-	<!-- Hidden static fallback form for Netlify form detection.
-		 This ensures Netlify sees the form and fields at build time even if
-		 you later render the form with JavaScript. It's invisible to users. -->
-	<form name="order" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" style="display:none;">
-		<input type="hidden" name="form-name" value="order">
-		<input name="bot-field" />
-		<input name="name" />
-		<input name="phone" />
-		<input name="pickup" />
-		<input name="delivery" />
-		<input name="items" />
-		<textarea name="details"></textarea>
-		<button type="submit">send</button>
-	</form>
-
-	<script>
-		// Wire up UI after DOM ready to avoid null references
-		window.addEventListener('DOMContentLoaded', ()=>{
-			// Admin button (prompt for password and navigate to admin page)
-			const adminBtn = document.getElementById('goAdmin');
-			if(adminBtn){
-				adminBtn.addEventListener('click', ()=>{
-					const p = prompt('Enter admin password to view orders:');
-					if(p === '4170423090'){
-						window.location.href = 'adminindex.html';
-					} else if(p !== null){
-						alert('Incorrect password');
-					}
-				});
-			}
-
-			// Form handling: save orders to localStorage
-			const form = document.getElementById('orderForm');
-			const toast = document.getElementById('toast');
-
-			function showToast(msg){
-				toast.textContent = msg;
-				toast.classList.remove('hidden');
-				setTimeout(()=> toast.classList.add('hidden'), 2200);
-			}
-
-			// Note: this page uses a standard HTML form submission so Netlify (or your server) will receive
-			// the POST. The previous JavaScript-based AJAX submit has been removed to keep the page a
-			// plain form while preserving the Save Draft and admin features below.
-
-			// Save draft to localStorage (not sent)
-			document.getElementById('saveLocal').addEventListener('click', ()=>{
-				const draft = {
-					name: document.getElementById('name').value,
-					phone: document.getElementById('phone').value,
-					pickup: document.getElementById('pickup').value,
-					delivery: document.getElementById('delivery').value,
-					details: document.getElementById('details').value,
-					items: Array.from(document.querySelectorAll('input[name="items"]:checked')).map(i=>i.value),
-					savedAt: new Date().toISOString()
-				};
-				localStorage.setItem('draft_order', JSON.stringify(draft));
-				showToast('Draft saved locally.');
-			});
-
-			// Load draft if exists (already inside DOMContentLoaded)
-			try{
-				const d = JSON.parse(localStorage.getItem('draft_order') || 'null');
-				if(d){
-					if(confirm('Load saved draft?')){
-						document.getElementById('name').value = d.name || '';
-						document.getElementById('phone').value = d.phone || '';
-						document.getElementById('pickup').value = d.pickup || '';
-						document.getElementById('delivery').value = d.delivery || '';
-						document.getElementById('details').value = d.details || '';
-						if(Array.isArray(d.items)){
-							d.items.forEach(it=>{
-								const el = Array.from(document.querySelectorAll('input[name="items"]')).find(x=>x.value===it);
-								if(el) el.checked = true;
-							})
-						}
-					}
-				}
-			}catch(e){console.warn(e)}
-
-		});
-	</script>
-</body>
+			<script>
+				// Minimal UX: disable submit button after click to avoid duplicates
+				(function(){
+					var form = document.querySelector('form[name="order-form"]');
+					var btn = document.getElementById('submitBtn');
+					form.addEventListener('submit', function(){
+						btn.disabled = true;
+						btn.textContent = 'Submitting...';
+					});
+				})();
+			</script>
+		</main>
+	</body>
 </html>
-
